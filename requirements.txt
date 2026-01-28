@@ -1,0 +1,6 @@
+fastapi
+uvicorn
+requests
+pydub
+librosa
+python-multipart
