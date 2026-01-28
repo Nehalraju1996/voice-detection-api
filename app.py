@@ -12,7 +12,7 @@ app = FastAPI()
 API_KEY = "mysecretkey"
 
 
-# -------- Request Model (GUVI camelCase compatible) --------
+# -------- Request Model (matches GUVI exactly) --------
 class AudioRequest(BaseModel):
     language: str
     audioFormat: str = Field(..., alias="audioFormat")
@@ -26,10 +26,12 @@ def save_base64_audio(base64_string, file_path):
         f.write(audio_bytes)
 
 
-# -------- Dummy Audio Processing --------
+# -------- Robust Audio Processing (auto-detect format) --------
 def process_audio(file_path):
+    # Let ffmpeg detect actual format (GUVI sends wav disguised as mp3)
     sound = AudioSegment.from_file(file_path)
-    wav_path = file_path.replace(".mp3", ".wav")
+
+    wav_path = file_path + ".wav"
     sound.export(wav_path, format="wav")
 
     y, sr = librosa.load(wav_path)
@@ -50,7 +52,8 @@ def analyze_audio(request: AudioRequest, x_api_key: str = Header(...)):
     if x_api_key != API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    temp_file = f"{uuid.uuid4()}.mp3"
+    # IMPORTANT: no extension assumption
+    temp_file = f"{uuid.uuid4()}"
 
     try:
         save_base64_audio(request.audioBase64, temp_file)
@@ -65,3 +68,5 @@ def analyze_audio(request: AudioRequest, x_api_key: str = Header(...)):
     finally:
         if os.path.exists(temp_file):
             os.remove(temp_file)
+        if os.path.exists(temp_file + ".wav"):
+            os.remove(temp_file + ".wav")
