@@ -25,7 +25,7 @@ def save_base64_audio(base64_string, file_path):
 
 
 def process_audio(file_path):
-    sound = AudioSegment.from_mp3(file_path)
+    sound = AudioSegment.from_file(file_path, format="mp3")
     wav_path = file_path.replace(".mp3", ".wav")
     sound.export(wav_path, format="wav")
 
@@ -37,4 +37,27 @@ def process_audio(file_path):
 
     explanation = f"Audio duration {duration:.2f}s analyzed for spectral patterns."
 
-    return classification, confidence, explanatio
+    return classification, confidence, explanation
+
+
+@app.post("/analyze")
+def analyze_audio(request: AudioRequest, x_api_key: str = Header(...)):
+
+    if x_api_key != API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    temp_file = f"{uuid.uuid4()}.mp3"
+
+    try:
+        save_base64_audio(request.audio_base64, temp_file)
+        classification, confidence, explanation = process_audio(temp_file)
+
+        return {
+            "classification": classification,
+            "confidence": confidence,
+            "explanation": explanation
+        }
+
+    finally:
+        if os.path.exists(temp_file):
+            os.remove(temp_file)
