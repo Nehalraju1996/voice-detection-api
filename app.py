@@ -1,7 +1,6 @@
-from fastapi import FastAPI, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import FastAPI, HTTPException, Header
 from pydantic import BaseModel
-import requests
+import base64
 import uuid
 from pydub import AudioSegment
 import librosa
@@ -11,29 +10,20 @@ import random
 app = FastAPI()
 
 API_KEY = "mysecretkey"
-security = HTTPBearer()
 
 
-# -------- Request Model --------
 class AudioRequest(BaseModel):
-    message: str
-    audio_url: str
+    language: str
+    audio_format: str
+    audio_base64: str
 
 
-# -------- Auth Verification using Security --------
-def verify_token(credentials: HTTPAuthorizationCredentials = Depends(security)):
-    if credentials.credentials != API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
+def save_base64_audio(base64_string, file_path):
+    audio_bytes = base64.b64decode(base64_string)
+    with open(file_path, "wb") as f:
+        f.write(audio_bytes)
 
 
-# -------- Audio Download --------
-def download_audio(url, filename):
-    response = requests.get(url)
-    with open(filename, 'wb') as f:
-        f.write(response.content)
-
-
-# -------- Dummy Audio Processing --------
 def process_audio(file_path):
     sound = AudioSegment.from_mp3(file_path)
     wav_path = file_path.replace(".mp3", ".wav")
@@ -47,28 +37,4 @@ def process_audio(file_path):
 
     explanation = f"Audio duration {duration:.2f}s analyzed for spectral patterns."
 
-    return classification, confidence, explanation
-
-
-# -------- API Endpoint --------
-@app.post("/analyze")
-def analyze_audio(
-    request: AudioRequest,
-    _: str = Depends(verify_token)
-):
-
-    temp_file = f"{uuid.uuid4()}.mp3"
-
-    try:
-        download_audio(request.audio_url, temp_file)
-        classification, confidence, explanation = process_audio(temp_file)
-
-        return {
-            "classification": classification,
-            "confidence": confidence,
-            "explanation": explanation
-        }
-
-    finally:
-        if os.path.exists(temp_file):
-            os.remove(temp_file)
+    return classification, confidence, explanatio
