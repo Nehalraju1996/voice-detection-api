@@ -15,7 +15,7 @@ API_KEY = "mysecretkey"
 class AudioRequest(BaseModel):
     language: str
     audio_format: str
-    audio_base64: str
+    audio: str
 
 
 def save_base64_audio(base64_string, file_path):
@@ -49,7 +49,7 @@ def analyze_audio(request: AudioRequest, x_api_key: str = Header(...)):
     temp_file = f"{uuid.uuid4()}.mp3"
 
     try:
-        save_base64_audio(request.audio_base64, temp_file)
+        save_base64_audio(request.audio, temp_file)
         classification, confidence, explanation = process_audio(temp_file)
 
         return {
