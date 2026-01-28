@@ -28,7 +28,7 @@ def save_base64_audio(base64_string, file_path):
 
 # -------- Dummy Audio Processing --------
 def process_audio(file_path):
-    sound = AudioSegment.from_file(file_path, format="mp3")
+    sound = AudioSegment.from_file(file_path)
     wav_path = file_path.replace(".mp3", ".wav")
     sound.export(wav_path, format="wav")
 
